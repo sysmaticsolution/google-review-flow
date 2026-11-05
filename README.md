@@ -35,14 +35,41 @@ When a customer scans a table QR code or counter flyer:
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Architecture
 
-- **React 19**
-- **Vite**
-- **Tailwind CSS v4**
-- **Lucide Icons**
-- **qrcode.react**
-- **canvas-confetti**
+- **Frontend:** React 19, Vite 8, Tailwind CSS v4, Lucide Icons, qrcode.react, canvas-confetti
+- **Backend:** Node.js Express REST API (`server/index.js`)
+- **Database:** SQLite (`data/reviews.sqlite`) with native WAL mode (`node:sqlite`)
+- **Proxy:** Vite dev server automatically proxies `/api` requests to the SQLite backend on port 3001
+
+---
+
+## 🗄️ SQLite Database Schema
+
+The SQLite database file is stored at `data/reviews.sqlite`:
+
+1. **`feedbacks` table**:
+   - `id`, `ticket_id`, `rating`, `business_name`, `issues` (JSON), `feedback_text`, `customer_name`, `customer_contact`, `want_follow_up`, `status`, `created_at`
+2. **`settings` table**:
+   - Key-value store for business profiles (name, cover, avatar, Google Review link, redirect settings).
+3. **`admins` table**:
+   - Stores authorized management credentials (seeded with `info@veltron.in` / `password123`).
+   - Passwords and sessions managed in SQLite.
+4. **`auth_sessions` table**:
+   - Active bearer session tokens with expiration.
+
+---
+
+## 🚀 API Endpoints
+
+- `GET /api/settings` - Public: returns current business settings.
+- `POST /api/settings` - Protected: updates business configuration (requires Super Admin token).
+- `POST /api/feedbacks` - Public: intercepts customer 1-3 star review and saves to SQLite.
+- `GET /api/feedbacks` - Protected: retrieves all private customer complaints from SQLite.
+- `DELETE /api/feedbacks` - Protected: clears feedback records.
+- `POST /api/auth/login` - Authenticates `info@veltron.in` / `password123`.
+- `GET /api/auth/verify` - Verifies active session token.
+- `POST /api/auth/logout` - Revokes session token.
 
 ---
 
@@ -53,10 +80,12 @@ When a customer scans a table QR code or counter flyer:
 npm install
 ```
 
-### 2. Run the development server
+### 2. Run both SQLite backend & frontend together
 ```bash
 npm run dev
 ```
+- **Frontend:** `http://127.0.0.1:5173/`
+- **SQLite Backend API:** `http://127.0.0.1:3001/`
 
 ### 3. Build for production
 ```bash
