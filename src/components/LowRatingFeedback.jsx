@@ -66,11 +66,6 @@ export default function LowRatingFeedback({
           Thank you for your candid feedback
         </h3>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-xs font-medium mb-4">
-          <AlertCircle className="w-3.5 h-3.5" />
-          <span>Case #{ticketId} Logged Privately with Management</span>
-        </div>
-
         <p className="text-gray-600 text-sm leading-relaxed mb-6">
           We sincerely apologize that your visit didn't meet our standards. 
           Your message has been directly submitted to the management team of{' '}
