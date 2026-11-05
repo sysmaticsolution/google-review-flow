@@ -30,6 +30,7 @@ export default function AdminPanel({
   onLogout,
   onSaveBusiness,
   onFeedbacksChange,
+  onClearFeedbacks,
   onClose,
 }) {
   const [activeTab, setActiveTab] = useState('qr'); // 'qr' | 'inbox' | 'settings'
@@ -80,10 +81,14 @@ export default function AdminPanel({
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  const handleClearInbox = () => {
-    if (window.confirm('Are you sure you want to delete all saved internal feedback records?')) {
-      clearStoredFeedbacks();
-      onFeedbacksChange([]);
+  const handleClearInbox = async () => {
+    if (window.confirm('Are you sure you want to delete all saved internal feedback records from SQLite?')) {
+      if (onClearFeedbacks) {
+        await onClearFeedbacks();
+      } else {
+        clearStoredFeedbacks();
+        onFeedbacksChange([]);
+      }
     }
   };
 
@@ -128,6 +133,9 @@ export default function AdminPanel({
                 <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   <span>Authorized</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-2xs font-mono font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                  SQLite: reviews.sqlite
                 </span>
               </div>
               <p className="text-xs text-gray-400">

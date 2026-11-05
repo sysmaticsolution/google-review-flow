@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, X, KeyRound, Building2 } from 'lucide-react';
-import { loginSuperAdmin, SUPER_ADMIN_CREDENTIALS } from '../utils/auth';
+import { apiLogin } from '../utils/api';
+import { SUPER_ADMIN_CREDENTIALS } from '../utils/auth';
 
 export default function AdminLogin({ onLoginSuccess, onClose }) {
   const [email, setEmail] = useState('');
@@ -10,20 +11,23 @@ export default function AdminLogin({ onLoginSuccess, onClose }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = loginSuperAdmin(email, password, rememberMe);
+    try {
+      const result = await apiLogin(email, password, rememberMe);
       setIsLoading(false);
       if (result.success) {
         onLoginSuccess(result.user);
       } else {
         setErrorMessage(result.error);
       }
-    }, 350);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMessage('Server connection error. Please try again.');
+    }
   };
 
   const handleFillDemoCredentials = () => {

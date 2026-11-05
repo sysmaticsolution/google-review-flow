@@ -1,23 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import {
+  apiFetchSettings,
+  apiUpdateSettings,
+  apiSubmitFeedback,
+  apiFetchFeedbacks,
+  apiClearFeedbacks,
+  apiLogout,
+  getStoredUser,
+} from './utils/api';
+import {
   getStoredSettings,
   saveStoredSettings,
   getStoredFeedbacks,
   saveInternalFeedback,
+  clearStoredFeedbacks,
 } from './utils/storage';
-import { getAuthenticatedUser, logoutAdmin } from './utils/auth';
 import GoogleHeader from './components/GoogleHeader';
 import GoogleReviewForm from './components/GoogleReviewForm';
 import LowRatingFeedback from './components/LowRatingFeedback';
 import HighRatingRedirect from './components/HighRatingRedirect';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
-import { QrCode, Lock, ShieldCheck, UserCheck, LogOut } from 'lucide-react';
+import { QrCode, Lock, ShieldCheck, UserCheck, LogOut, Database } from 'lucide-react';
 
 export default function App() {
   const [business, setBusiness] = useState(getStoredSettings);
   const [feedbacks, setFeedbacks] = useState(getStoredFeedbacks);
-  const [currentUser, setCurrentUser] = useState(getAuthenticatedUser);
+  const [currentUser, setCurrentUser] = useState(getStoredUser);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   // Step state: 'form' | 'low_feedback' | 'high_redirect'
@@ -25,6 +34,40 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Load settings from SQLite backend on initial mount
+  useEffect(() => {
+    let isMounted = true;
+    apiFetchSettings()
+      .then((serverSettings) => {
+        if (isMounted && serverSettings) {
+          setBusiness(serverSettings);
+          saveStoredSettings(serverSettings);
+        }
+      })
+      .catch((err) => console.warn('Using local settings cache:', err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Fetch feedbacks from SQLite whenever authenticated
+  useEffect(() => {
+    if (currentUser) {
+      apiFetchFeedbacks()
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setFeedbacks(data);
+          }
+        })
+        .catch((err) => {
+          if (err.message === 'Unauthorized') {
+            setCurrentUser(null);
+          }
+        });
+    }
+  }, [currentUser, showAdmin]);
 
   // Check URL params for quick testing or table QR identification
   useEffect(() => {
@@ -55,16 +98,46 @@ export default function App() {
     setActiveStep('form');
   };
 
-  const handleSubmitLowFeedback = (feedbackPayload) => {
+  const handleSubmitLowFeedback = async (feedbackPayload) => {
     setIsSubmitting(true);
-    const saved = saveInternalFeedback(feedbackPayload);
-    setFeedbacks(getStoredFeedbacks());
-    setIsSubmitting(false);
+    try {
+      // 1. Submit to SQLite backend
+      const saved = await apiSubmitFeedback(feedbackPayload);
+      if (saved) {
+        setFeedbacks((prev) => [saved, ...prev]);
+      }
+    } catch (err) {
+      // 2. Fallback to localStorage if offline
+      console.warn('Backend unavailable, saving locally:', err);
+      saveInternalFeedback(feedbackPayload);
+      setFeedbacks(getStoredFeedbacks());
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSaveBusiness = (updatedSettings) => {
-    setBusiness(updatedSettings);
-    saveStoredSettings(updatedSettings);
+  const handleSaveBusiness = async (updatedSettings) => {
+    try {
+      const saved = await apiUpdateSettings(updatedSettings);
+      setBusiness(saved);
+      saveStoredSettings(saved);
+    } catch (err) {
+      console.warn('Backend update failed, saving locally:', err);
+      setBusiness(updatedSettings);
+      saveStoredSettings(updatedSettings);
+    }
+  };
+
+  const handleClearFeedbacks = async () => {
+    try {
+      await apiClearFeedbacks();
+      setFeedbacks([]);
+      clearStoredFeedbacks();
+    } catch (err) {
+      console.warn('Backend clear failed, clearing locally:', err);
+      clearStoredFeedbacks();
+      setFeedbacks([]);
+    }
   };
 
   // Open backend data protected area
@@ -76,14 +149,22 @@ export default function App() {
     }
   };
 
-  const handleLoginSuccess = (user) => {
+  const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
     setShowLoginModal(false);
     setShowAdmin(true);
+    try {
+      const liveFeedbacks = await apiFetchFeedbacks();
+      if (Array.isArray(liveFeedbacks)) {
+        setFeedbacks(liveFeedbacks);
+      }
+    } catch (e) {
+      // ignore
+    }
   };
 
-  const handleLogout = () => {
-    logoutAdmin();
+  const handleLogout = async () => {
+    await apiLogout();
     setCurrentUser(null);
     setShowAdmin(false);
   };
@@ -99,6 +180,10 @@ export default function App() {
             {activeStep === 'form' && '· Rate your experience'}
             {activeStep === 'low_feedback' && '· Share direct feedback'}
             {activeStep === 'high_redirect' && '· Verified Google Review'}
+          </span>
+          <span className="hidden md:inline-flex items-center gap-1 text-2xs bg-gray-800 text-cyan-300 px-2 py-0.5 rounded border border-gray-700">
+            <Database className="w-3 h-3 text-cyan-400" />
+            <span>SQLite Active</span>
           </span>
         </div>
 
@@ -206,7 +291,7 @@ export default function App() {
           >
             <Lock className="w-3 h-3 text-gray-400" />
             <span>
-              {currentUser ? 'Open Admin Dashboard' : 'Backend Data (Authorized Personnel Only)'}
+              {currentUser ? 'Open SQLite Admin Dashboard' : 'Backend Data (Authorized Personnel Only)'}
             </span>
           </button>
         </div>
@@ -229,6 +314,7 @@ export default function App() {
           onLogout={handleLogout}
           onSaveBusiness={handleSaveBusiness}
           onFeedbacksChange={setFeedbacks}
+          onClearFeedbacks={handleClearFeedbacks}
           onClose={() => setShowAdmin(false)}
         />
       )}
