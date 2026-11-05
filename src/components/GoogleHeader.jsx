@@ -55,20 +55,6 @@ export default function GoogleHeader({ onClose, onReset, rating, canSubmit, isSu
             {rating > 3 ? 'Post' : 'Next'}
           </button>
         )}
-        {activeStep === 'low_feedback' && (
-          <button
-            type="button"
-            disabled={!canSubmit || isSubmitting}
-            onClick={onSubmit}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-              canSubmit && !isSubmitting
-                ? 'bg-[#1a73e8] text-white hover:bg-[#1557b0] shadow-sm cursor-pointer'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? 'Sending...' : 'Submit'}
-          </button>
-        )}
       </div>
     </header>
   );
