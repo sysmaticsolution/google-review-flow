@@ -107,3 +107,4 @@ if (!hasSettings) {
   );
   console.log('[SQLite] Seeded initial business profile settings for Loop Cafe');
 }
+

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import { db } from './db.js';
 
 const app = express();
@@ -8,6 +9,37 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Helper to determine the best LAN IP for mobile phone testing
+function getLanIp() {
+  const interfaces = os.networkInterfaces();
+  const candidates = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        // Exclude virtual adapters if physical exists
+        const isVirtual = name.toLowerCase().includes('vmware') || 
+                          name.toLowerCase().includes('virtual') || 
+                          iface.address.startsWith('192.168.56.') ||
+                          iface.address.startsWith('172.');
+        if (!isVirtual) {
+          return iface.address;
+        }
+        candidates.push(iface.address);
+      }
+    }
+  }
+  return candidates[0] || 'localhost';
+}
+
+app.get('/api/network-info', (req, res) => {
+  const lanIp = getLanIp();
+  res.json({
+    lanIp,
+    port: 5173,
+    mobileUrl: `http://${lanIp}:5173`,
+  });
+});
 
 // Auth middleware to verify Super Admin session token
 function authenticateAdmin(req, res, next) {
@@ -252,3 +284,4 @@ app.post('/api/auth/logout', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Backend] SQLite API Server running at http://127.0.0.1:${PORT}`);
 });
+

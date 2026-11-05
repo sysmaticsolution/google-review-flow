@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   QrCode,
@@ -39,8 +39,25 @@ export default function AdminPanel({
   const [copiedLink, setCopiedLink] = useState(false);
 
   // The application URL for QR code
-  const currentAppUrl = typeof window !== 'undefined' ? window.location.href.split('?')[0] : 'https://google-review-flow.vercel.app';
+  const currentAppUrl = typeof window !== 'undefined' ? window.location.href.split('?')[0] : 'http://192.168.0.112:5173';
   const [customQrUrl, setCustomQrUrl] = useState(currentAppUrl);
+  const [lanUrl, setLanUrl] = useState('');
+
+  // Fetch local network IP for reliable mobile QR scanning
+  useEffect(() => {
+    fetch('/api/network-info')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.mobileUrl) {
+          setLanUrl(data.mobileUrl);
+          // If current URL is localhost or 127.0.0.1, auto-replace with actual Wi-Fi LAN IP
+          if (customQrUrl.includes('localhost') || customQrUrl.includes('127.0.0.1')) {
+            setCustomQrUrl(data.mobileUrl);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -269,6 +286,39 @@ export default function AdminPanel({
                         {copiedLink ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
+
+                    {/* Quick preset helpers */}
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      {lanUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomQrUrl(lanUrl)}
+                          className={`text-2xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
+                            customQrUrl === lanUrl
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                          }`}
+                        >
+                          📱 Phone Wi-Fi URL: {lanUrl}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCustomQrUrl('http://127.0.0.1:5173')}
+                        className={`text-2xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
+                          customQrUrl.includes('127.0.0.1')
+                            ? 'bg-gray-800 text-white border-gray-800'
+                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        }`}
+                      >
+                        💻 Localhost
+                      </button>
+                    </div>
+
+                    {/* Phone scan tip */}
+                    <p className="text-2xs text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
+                      <strong>📱 Mobile Phone Tip:</strong> Phones cannot open <code className="bg-amber-100 px-1 rounded">127.0.0.1</code> or <code className="bg-amber-100 px-1 rounded">localhost</code> because that points to the phone itself. Keep your phone connected to the same Wi-Fi and use the <code className="bg-amber-100 px-1 rounded">http://192.168.0.112:5173</code> URL above.
+                    </p>
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-950 space-y-2">
