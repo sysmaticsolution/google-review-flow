@@ -314,11 +314,6 @@ export default function AdminPanel({
                         💻 Localhost
                       </button>
                     </div>
-
-                    {/* Phone scan tip */}
-                    <p className="text-2xs text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
-                      <strong>📱 Mobile Phone Tip:</strong> Phones cannot open <code className="bg-amber-100 px-1 rounded">127.0.0.1</code> or <code className="bg-amber-100 px-1 rounded">localhost</code> because that points to the phone itself. Keep your phone connected to the same Wi-Fi and use the <code className="bg-amber-100 px-1 rounded">http://192.168.0.112:5173</code> URL above.
-                    </p>
                   </div>
 
                   <div className="pt-2">
