@@ -308,6 +308,7 @@ export default function App() {
           onSaveBusiness={handleSaveBusiness}
           onFeedbacksChange={setFeedbacks}
           onClearFeedbacks={handleClearFeedbacks}
+          onUserUpdate={(updatedUser) => setCurrentUser(updatedUser)}
           onClose={() => setShowAdmin(false)}
         />
       )}

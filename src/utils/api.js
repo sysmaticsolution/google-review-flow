@@ -170,3 +170,31 @@ export async function apiLogout() {
   }
 }
 
+export async function apiUpdateCredentials({ currentPassword, newEmail, newPassword }) {
+  try {
+    const res = await fetch('/api/auth/credentials', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ currentPassword, newEmail, newPassword }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update credentials');
+    }
+
+    if (data.user) {
+      const currentToken = getStoredToken();
+      saveAuthSession(data.user, currentToken, true);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('[API] Error updating admin credentials:', err);
+    throw err;
+  }
+}
+

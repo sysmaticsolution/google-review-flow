@@ -242,6 +242,59 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
+// Protected: Update Admin Credentials (username/email and password)
+app.put('/api/auth/credentials', authenticateAdmin, (req, res) => {
+  try {
+    const { currentPassword, newEmail, newPassword } = req.body;
+    const currentAdminEmail = req.admin.email;
+
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required to make security changes.' });
+    }
+
+    const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(currentAdminEmail);
+    if (!admin || admin.password !== currentPassword.trim()) {
+      return res.status(401).json({ error: 'Incorrect current password. Verification failed.' });
+    }
+
+    const targetEmail = newEmail ? newEmail.trim().toLowerCase() : currentAdminEmail;
+    const targetPassword = newPassword && newPassword.trim() ? newPassword.trim() : admin.password;
+
+    if (newPassword && newPassword.trim().length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    // If changing email/username to a different one, check if already in use
+    if (targetEmail !== currentAdminEmail) {
+      const existing = db.prepare('SELECT email FROM admins WHERE email = ?').get(targetEmail);
+      if (existing) {
+        return res.status(400).json({ error: 'This username/email is already registered.' });
+      }
+
+      // Update admins and cascade to auth_sessions
+      db.prepare('UPDATE auth_sessions SET email = ? WHERE email = ?').run(targetEmail, currentAdminEmail);
+      db.prepare('UPDATE admins SET email = ?, password = ? WHERE email = ?').run(targetEmail, targetPassword, currentAdminEmail);
+    } else {
+      // Just update password
+      db.prepare('UPDATE admins SET password = ? WHERE email = ?').run(targetPassword, currentAdminEmail);
+    }
+
+    const updatedAdmin = db.prepare('SELECT email, role, name FROM admins WHERE email = ?').get(targetEmail);
+    return res.json({
+      success: true,
+      message: 'Admin credentials updated successfully in database.',
+      user: {
+        email: updatedAdmin.email,
+        role: updatedAdmin.role,
+        name: updatedAdmin.name,
+      },
+    });
+  } catch (err) {
+    console.error('Error updating credentials:', err);
+    return res.status(500).json({ error: 'Failed to update credentials in database.' });
+  }
+});
+
 app.get('/api/auth/verify', (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

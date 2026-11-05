@@ -19,9 +19,15 @@ import {
   Building,
   LogOut,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldAlert
 } from 'lucide-react';
 import { clearStoredFeedbacks } from '../utils/storage';
+import { apiUpdateCredentials } from '../utils/api';
 
 export default function AdminPanel({
   business,
@@ -31,12 +37,24 @@ export default function AdminPanel({
   onSaveBusiness,
   onFeedbacksChange,
   onClearFeedbacks,
+  onUserUpdate,
   onClose,
 }) {
-  const [activeTab, setActiveTab] = useState('qr'); // 'qr' | 'inbox' | 'settings'
+  const [activeTab, setActiveTab] = useState('qr'); // 'qr' | 'inbox' | 'settings' | 'security'
   const [settingsForm, setSettingsForm] = useState({ ...business });
   const [savedNotice, setSavedNotice] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Security Credentials Config State
+  const [credEmail, setCredEmail] = useState(currentUser?.email || 'info@veltron.in');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [credError, setCredError] = useState('');
+  const [credSuccess, setCredSuccess] = useState('');
+  const [isSavingCreds, setIsSavingCreds] = useState(false);
 
   // Dynamically uses the current live application page URL
   const getLiveAppUrl = () => {
@@ -95,6 +113,50 @@ export default function AdminPanel({
         clearStoredFeedbacks();
         onFeedbacksChange([]);
       }
+    }
+  };
+
+  const handleUpdateCredentials = async (e) => {
+    e.preventDefault();
+    setCredError('');
+    setCredSuccess('');
+
+    if (!currentPassword) {
+      setCredError('Please enter your current password to authorize changes.');
+      return;
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      setCredError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword && newPassword !== confirmPassword) {
+      setCredError('New passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setIsSavingCreds(true);
+    try {
+      const result = await apiUpdateCredentials({
+        currentPassword,
+        newEmail: credEmail,
+        newPassword: newPassword || undefined,
+      });
+
+      setIsSavingCreds(false);
+      setCredSuccess('Super Admin credentials updated successfully in database!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      if (onUserUpdate && result.user) {
+        onUserUpdate(result.user);
+      }
+      setTimeout(() => setCredSuccess(''), 4000);
+    } catch (err) {
+      setIsSavingCreds(false);
+      setCredError(err.message || 'Failed to update credentials. Please check current password.');
     }
   };
 
@@ -206,6 +268,18 @@ export default function AdminPanel({
           >
             <Settings className="w-4 h-4" />
             <span>Google Review Link & Config</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`py-3 px-2 border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'security'
+                ? 'border-blue-600 text-blue-600 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Admin Login & Password</span>
           </button>
         </div>
 
@@ -507,6 +581,171 @@ export default function AdminPanel({
                 </div>
               </div>
             </form>
+          )}
+
+          {/* TAB 4: SECURITY & CREDENTIALS */}
+          {activeTab === 'security' && (
+            <div className="space-y-6 max-w-xl mx-auto">
+              {/* Account summary banner */}
+              <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3.5 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-google font-bold text-base text-white">
+                      Super Admin Credentials
+                    </h4>
+                    <p className="text-xs text-gray-300">
+                      Configure your login email/username and password stored in the SQLite database.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-2xs text-gray-300">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Active Login Account: <strong>{currentUser?.email || credEmail}</strong></span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 font-mono text-cyan-300">
+                    Database: reviews.sqlite
+                  </span>
+                </div>
+              </div>
+
+              {/* Feedback messages */}
+              {credError && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-start gap-2.5 animate-fadeIn">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{credError}</span>
+                </div>
+              )}
+
+              {credSuccess && (
+                <div className="p-3.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs flex items-center gap-2.5 animate-fadeIn">
+                  <CheckCircle className="w-4 h-4 shrink-0 text-green-600" />
+                  <span className="font-medium">{credSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateCredentials} className="space-y-4 bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs">
+                {/* Username / Email */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Super Admin Username / Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={credEmail}
+                      onChange={(e) => setCredEmail(e.target.value)}
+                      placeholder="e.g. info@veltron.in"
+                      className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+                  <p className="text-2xs text-gray-400 mt-1">
+                    Used to authenticate on the Super Admin login screen.
+                  </p>
+                </div>
+
+                {/* Current Password */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Current Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showCurrentPass ? 'text' : 'password'}
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter your current password to authorize changes"
+                      className="w-full pl-9 pr-10 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPass(!showCurrentPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Change Password (Optional)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* New Password */}
+                    <div>
+                      <label className="block text-2xs font-medium text-gray-600 mb-1">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNewPass ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Min 6 characters"
+                          className="w-full px-3 py-2 pr-9 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                        >
+                          {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="block text-2xs font-medium text-gray-600 mb-1">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type={showNewPass ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-2xs text-gray-400 mt-1.5">
+                    Leave new password fields blank if you only wish to change your username/email.
+                  </p>
+                </div>
+
+                {/* Submit Action */}
+                <div className="pt-3 border-t border-gray-100 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSavingCreds}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs sm:text-sm font-medium rounded-xl shadow-xs transition-all cursor-pointer active:scale-98"
+                  >
+                    {isSavingCreds ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Updating Database...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Save Security Credentials</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
         </div>
       </div>
