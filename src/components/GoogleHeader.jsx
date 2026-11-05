@@ -41,7 +41,7 @@ export default function GoogleHeader({ onClose, onReset, rating, canSubmit, isSu
       </div>
 
       <div className="flex items-center gap-2">
-        {activeStep === 'rating' && (
+        {activeStep === 'form' && (
           <button
             type="button"
             disabled={!rating}
@@ -52,7 +52,7 @@ export default function GoogleHeader({ onClose, onReset, rating, canSubmit, isSu
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Next
+            {rating > 3 ? 'Post' : 'Next'}
           </button>
         )}
         {activeStep === 'low_feedback' && (
@@ -67,15 +67,6 @@ export default function GoogleHeader({ onClose, onReset, rating, canSubmit, isSu
             }`}
           >
             {isSubmitting ? 'Sending...' : 'Submit'}
-          </button>
-        )}
-        {activeStep === 'high_redirect' && (
-          <button
-            type="button"
-            onClick={onSubmit}
-            className="px-4 py-1.5 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] shadow-sm cursor-pointer flex items-center gap-1.5"
-          >
-            <span>Post</span>
           </button>
         )}
       </div>

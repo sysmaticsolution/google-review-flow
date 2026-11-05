@@ -18,7 +18,6 @@ import {
 import GoogleHeader from './components/GoogleHeader';
 import GoogleReviewForm from './components/GoogleReviewForm';
 import LowRatingFeedback from './components/LowRatingFeedback';
-import HighRatingRedirect from './components/HighRatingRedirect';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
 import { QrCode, Lock, ShieldCheck, UserCheck, LogOut, Database } from 'lucide-react';
@@ -81,14 +80,19 @@ export default function App() {
     }
   }, []);
 
+  const redirectToGoogleReview = () => {
+    const targetUrl = business.googleReviewUrl || 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4';
+    window.location.href = targetUrl;
+  };
+
   const handleStarSelect = (selectedRating) => {
     setRating(selectedRating);
     if (selectedRating <= 3) {
       // 1, 2, or 3 Stars -> Stay inside application for private feedback
       setActiveStep('low_feedback');
     } else {
-      // 4 or 5 Stars -> Send directly to Google Reviews
-      setActiveStep('high_redirect');
+      // > 3 rating (4 or 5 Stars) -> Directly open Google Review page immediately!
+      redirectToGoogleReview();
     }
   };
 
@@ -179,7 +183,6 @@ export default function App() {
           <span className="text-gray-400 text-2xs sm:text-xs">
             {activeStep === 'form' && '· Rate your experience'}
             {activeStep === 'low_feedback' && '· Share direct feedback'}
-            {activeStep === 'high_redirect' && '· Verified Google Review'}
           </span>
           <span className="hidden md:inline-flex items-center gap-1 text-2xs bg-gray-800 text-cyan-300 px-2 py-0.5 rounded border border-gray-700">
             <Database className="w-3 h-3 text-cyan-400" />
@@ -233,10 +236,11 @@ export default function App() {
             activeStep={activeStep}
             onSubmit={() => {
               if (activeStep === 'form') {
-                if (rating <= 3) setActiveStep('low_feedback');
-                else setActiveStep('high_redirect');
-              } else if (activeStep === 'high_redirect') {
-                window.open(business.googleReviewUrl, '_blank', 'noopener,noreferrer');
+                if (rating <= 3) {
+                  setActiveStep('low_feedback');
+                } else {
+                  redirectToGoogleReview();
+                }
               }
             }}
           />
@@ -260,17 +264,6 @@ export default function App() {
               onRatingChange={handleStarSelect}
               business={business}
               onSubmitFeedback={handleSubmitLowFeedback}
-              onBack={handleReset}
-            />
-          )}
-
-          {/* STEP 3: Greater than or equal to 4 Stars (Direct to Google Reviews) */}
-          {activeStep === 'high_redirect' && (
-            <HighRatingRedirect
-              rating={rating}
-              onRatingChange={handleStarSelect}
-              business={business}
-              userReviewText={reviewText}
               onBack={handleReset}
             />
           )}
