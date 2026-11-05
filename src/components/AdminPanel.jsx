@@ -321,16 +321,6 @@ export default function AdminPanel({
                     </p>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-950 space-y-2">
-                    <div className="font-bold flex items-center gap-1.5">
-                      <span>⚡ How the Smart Review Filter works:</span>
-                    </div>
-                    <ul className="list-disc pl-4 space-y-1 text-2xs sm:text-xs">
-                      <li><strong>Customer selects 4 or 5 Stars:</strong> Automatically routed to your authentic Google Review page to post a public 5-star review!</li>
-                      <li><strong>Customer selects 1, 2, or 3 Stars:</strong> Kept safely inside this application. Their complaint is forwarded directly to your Private Feedback Inbox without hitting Google.</li>
-                    </ul>
-                  </div>
-
                   <div className="pt-2">
                     <button
                       onClick={handleDownloadQR}
