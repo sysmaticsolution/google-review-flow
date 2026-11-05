@@ -38,26 +38,15 @@ export default function AdminPanel({
   const [savedNotice, setSavedNotice] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // The application URL for QR code
-  const currentAppUrl = typeof window !== 'undefined' ? window.location.href.split('?')[0] : 'http://192.168.0.112:5173';
-  const [customQrUrl, setCustomQrUrl] = useState(currentAppUrl);
-  const [lanUrl, setLanUrl] = useState('');
+  // Dynamically uses the current live application page URL
+  const getLiveAppUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin + window.location.pathname;
+    }
+    return '';
+  };
 
-  // Fetch local network IP for reliable mobile QR scanning
-  useEffect(() => {
-    fetch('/api/network-info')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.mobileUrl) {
-          setLanUrl(data.mobileUrl);
-          // If current URL is localhost or 127.0.0.1, auto-replace with actual Wi-Fi LAN IP
-          if (customQrUrl.includes('localhost') || customQrUrl.includes('127.0.0.1')) {
-            setCustomQrUrl(data.mobileUrl);
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const [customQrUrl, setCustomQrUrl] = useState(getLiveAppUrl);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -284,34 +273,6 @@ export default function AdminPanel({
                         title="Copy link"
                       >
                         {copiedLink ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-
-                    {/* Quick preset helpers */}
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      {lanUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setCustomQrUrl(lanUrl)}
-                          className={`text-2xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
-                            customQrUrl === lanUrl
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                          }`}
-                        >
-                          📱 Phone Wi-Fi URL: {lanUrl}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setCustomQrUrl('http://127.0.0.1:5173')}
-                        className={`text-2xs px-2.5 py-1 rounded-md font-medium border transition-colors cursor-pointer ${
-                          customQrUrl.includes('127.0.0.1')
-                            ? 'bg-gray-800 text-white border-gray-800'
-                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                        }`}
-                      >
-                        💻 Localhost
                       </button>
                     </div>
                   </div>
