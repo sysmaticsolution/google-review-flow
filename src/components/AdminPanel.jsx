@@ -99,7 +99,7 @@ export default function AdminPanel({
   };
 
   const handleClearInbox = async () => {
-    if (window.confirm('Are you sure you want to delete all saved internal feedback records from SQLite?')) {
+    if (window.confirm('Are you sure you want to delete all feedback records from database?')) {
       if (onClearFeedbacks) {
         await onClearFeedbacks();
       } else {

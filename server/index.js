@@ -192,10 +192,10 @@ app.get('/api/feedbacks', authenticateAdmin, (req, res) => {
 app.delete('/api/feedbacks', authenticateAdmin, (req, res) => {
   try {
     db.prepare('DELETE FROM feedbacks').run();
-    return res.json({ success: true, message: 'All feedback records deleted from SQLite' });
+    return res.json({ success: true, message: 'All feedback records deleted from database' });
   } catch (err) {
     console.error('Error clearing feedbacks:', err);
-    return res.status(500).json({ error: 'Failed to clear feedbacks in SQLite' });
+    return res.status(500).json({ error: 'Failed to clear feedbacks in database' });
   }
 });
 
