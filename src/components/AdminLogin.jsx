@@ -36,17 +36,6 @@ export default function AdminLogin({
     }
   };
 
-  const handleFillDemoCredentials = () => {
-    if (isOwnerPage) {
-      setEmail('owner@veltron.in');
-      setPassword('ownerpassword123');
-    } else {
-      setEmail('info@veltron.in');
-      setPassword('password123');
-    }
-    setErrorMessage('');
-  };
-
   return (
     <div className={isStandalonePage ? "min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-purple-600 selection:text-white" : "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"}>
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-scaleUp">
@@ -147,41 +136,6 @@ export default function AdminLogin({
                 />
                 <span>Remember this session</span>
               </label>
-
-              <button
-                type="button"
-                onClick={handleFillDemoCredentials}
-                className="text-purple-600 hover:text-purple-800 hover:underline font-medium text-2xs cursor-pointer"
-              >
-                Auto-fill
-              </button>
-            </div>
-
-            {/* Quick credentials hint */}
-            <div className={`p-2.5 rounded-xl text-2xs flex items-center justify-between ${
-              isOwnerPage
-                ? 'bg-purple-50 border border-purple-200/80 text-purple-900'
-                : 'bg-blue-50/70 border border-blue-200/60 text-blue-900'
-            }`}>
-              <div>
-                <span className="font-semibold block">
-                  {isOwnerPage ? 'Product Owner Account:' : 'Store Manager Account:'}
-                </span>
-                <span className="text-gray-600 font-mono">
-                  {isOwnerPage ? 'owner@veltron.in' : 'info@veltron.in'}
-                </span> / <span className="text-gray-600 font-mono">
-                  {isOwnerPage ? 'ownerpassword123' : 'password123'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleFillDemoCredentials}
-                className={`px-2 py-1 text-white rounded-md text-2xs font-medium cursor-pointer ${
-                  isOwnerPage ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                Insert
-              </button>
             </div>
 
             <div className="pt-2">
