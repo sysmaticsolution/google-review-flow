@@ -15,7 +15,51 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Ensure public images and uploads directories exist and are served
+const publicImagesPath = path.resolve(__dirname, '../public/images');
+const uploadsDir = path.join(publicImagesPath, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/images', express.static(publicImagesPath));
+
+// Upload image endpoint (converts base64 data URL to static file)
+app.post('/api/upload', (req, res) => {
+  try {
+    const { image, name = 'upload' } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
+    if (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/images/')) {
+      return res.json({ success: true, url: image });
+    }
+
+    const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    if (!matches) {
+      return res.status(400).json({ error: 'Invalid image format. Expected base64 image data.' });
+    }
+
+    let ext = matches[1].toLowerCase();
+    if (ext === 'jpeg') ext = 'jpg';
+    if (ext === 'svg+xml') ext = 'svg';
+
+    const buffer = Buffer.from(matches[2], 'base64');
+    const cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+    const fileName = `${cleanName}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    fs.writeFileSync(filePath, buffer);
+    const publicUrl = `/images/uploads/${fileName}`;
+
+    return res.json({ success: true, url: publicUrl });
+  } catch (err) {
+    console.error('Error saving uploaded image:', err);
+    return res.status(500).json({ error: 'Failed to save uploaded image' });
+  }
+});
 
 // Helper to determine the best LAN IP for mobile phone testing
 function getLanIp() {

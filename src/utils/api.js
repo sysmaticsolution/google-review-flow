@@ -184,6 +184,27 @@ export async function apiClearTenantFeedbacks() {
 // ----------------------------------------------------
 // PRODUCT OWNER MULTI-TENANT MASTER API (/api/owner)
 // ----------------------------------------------------
+export async function apiUploadImage(image, name = 'image') {
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to upload image');
+    }
+    return data.url;
+  } catch (err) {
+    console.error('[API] Error uploading image:', err);
+    // If upload endpoint fails, fallback to using the base64 dataUrl directly
+    return image;
+  }
+}
+
 export async function apiFetchOwnerTenants() {
   try {
     const res = await fetch('/api/owner/tenants', {

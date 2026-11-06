@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2,
   Users,
@@ -23,7 +23,9 @@ import {
   EyeOff,
   Store,
   Layers,
-  Sparkles
+  Sparkles,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   apiFetchOwnerTenants,
@@ -33,7 +35,119 @@ import {
   apiUpdateOwnerCredentials,
   apiFetchFeedbacks,
   apiClearFeedbacks,
+  apiUploadImage,
 } from '../utils/api';
+
+function ImageUploadField({ label, value, onChange, placeholder = 'Upload Image', isBanner = false, namePrefix = 'image' }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, WebP, SVG)');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image file is too large (maximum 10MB)');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result;
+      onChange(base64); // Show instant local preview
+
+      try {
+        const uploadedUrl = await apiUploadImage(base64, namePrefix);
+        if (uploadedUrl) {
+          onChange(uploadedUrl);
+        }
+      } catch (err) {
+        console.warn('Backend image upload fallback to base64:', err);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div>
+      <label className="block font-semibold text-slate-300 mb-1.5 text-xs">{label}</label>
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        onChange={handleFile}
+        className="hidden"
+      />
+
+      {value ? (
+        <div className={`relative group border border-slate-700/80 rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center ${
+          isBanner ? 'h-24 w-full' : 'h-24 w-24'
+        }`}>
+          <img
+            src={value}
+            alt={label}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.src = '/images/loop-avatar.jpg';
+            }}
+          />
+          {isUploading && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xs">
+              <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-2xs cursor-pointer shadow-md flex items-center gap-1"
+              title="Change Image"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Change</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="p-1 bg-red-600/80 hover:bg-red-600 text-white rounded-lg text-2xs cursor-pointer shadow-md"
+              title="Remove Image"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className={`border-2 border-dashed border-slate-700 hover:border-purple-500 rounded-2xl bg-slate-950/60 hover:bg-slate-900/60 transition-all flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-purple-300 cursor-pointer p-3 ${
+            isBanner ? 'w-full h-24' : 'w-24 h-24'
+          }`}
+        >
+          {isUploading ? (
+            <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <ImageIcon className="w-5 h-5 opacity-70 text-purple-400" />
+              <span className="text-2xs font-medium text-center leading-tight">
+                {placeholder}
+              </span>
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function ProductOwnerDashboard({
   currentUser,
@@ -950,6 +1064,26 @@ export default function ProductOwnerDashboard({
                 </div>
               </div>
 
+              {/* Upload Images (No URL needed) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                <ImageUploadField
+                  label="Avatar / Business Logo"
+                  value={newTenantForm.avatarUrl}
+                  onChange={(val) => setNewTenantForm({ ...newTenantForm, avatarUrl: val })}
+                  placeholder="Upload Logo"
+                  isBanner={false}
+                  namePrefix="logo"
+                />
+                <ImageUploadField
+                  label="Cover Photo / Store Banner"
+                  value={newTenantForm.coverPhoto}
+                  onChange={(val) => setNewTenantForm({ ...newTenantForm, coverPhoto: val })}
+                  placeholder="Upload Cover Banner"
+                  isBanner={true}
+                  namePrefix="cover"
+                />
+              </div>
+
               {/* Dedicated Manager Credentials for this tenant */}
               <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
                 <span className="text-2xs font-semibold uppercase tracking-wider text-purple-400 block">
@@ -1091,25 +1225,24 @@ export default function ProductOwnerDashboard({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Avatar / Logo URL</label>
-                  <input
-                    type="text"
-                    value={editForm.avatarUrl}
-                    onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Cover Photo URL</label>
-                  <input
-                    type="text"
-                    value={editForm.coverPhoto}
-                    onChange={(e) => setEditForm({ ...editForm, coverPhoto: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-                  />
-                </div>
+              {/* Upload Images (No URL needed) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                <ImageUploadField
+                  label="Avatar / Business Logo"
+                  value={editForm.avatarUrl}
+                  onChange={(val) => setEditForm({ ...editForm, avatarUrl: val })}
+                  placeholder="Upload Logo"
+                  isBanner={false}
+                  namePrefix="logo"
+                />
+                <ImageUploadField
+                  label="Cover Photo / Store Banner"
+                  value={editForm.coverPhoto}
+                  onChange={(val) => setEditForm({ ...editForm, coverPhoto: val })}
+                  placeholder="Upload Cover Banner"
+                  isBanner={true}
+                  namePrefix="cover"
+                />
               </div>
 
               {/* Dedicated Manager Credentials */}

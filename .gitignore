@@ -27,3 +27,8 @@ dist-ssr
 data/*.sqlite-wal
 data/*.sqlite-shm
 
+# Uploaded image files
+public/images/uploads/*
+!public/images/uploads/.gitkeep
+
+
