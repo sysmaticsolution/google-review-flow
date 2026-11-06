@@ -526,9 +526,6 @@ app.put('/api/owner/tenants/:id', authenticateUser, requireProductOwner, (req, r
 app.delete('/api/owner/tenants/:id', authenticateUser, requireProductOwner, (req, res) => {
   try {
     const { id } = req.params;
-    if (id === 'loop') {
-      return res.status(400).json({ error: 'Cannot delete default primary tenant (loop)' });
-    }
     db.prepare('DELETE FROM feedbacks WHERE tenant_id = ?').run(id);
     db.prepare('DELETE FROM admins WHERE tenant_id = ?').run(id);
     db.prepare('DELETE FROM tenants WHERE id = ?').run(id);

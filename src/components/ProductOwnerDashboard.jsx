@@ -127,7 +127,7 @@ export default function ProductOwnerDashboard({
   const getTenantReviewUrl = (slug) => {
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
-      return slug === 'loop' ? `${origin}/` : `${origin}/?tenant=${slug}`;
+      return `${origin}/?tenant=${slug}`;
     }
     return '';
   };
@@ -223,10 +223,6 @@ export default function ProductOwnerDashboard({
   };
 
   const handleDeleteTenant = async (tenantId) => {
-    if (tenantId === 'loop') {
-      alert('The primary default tenant "loop" cannot be deleted.');
-      return;
-    }
     if (window.confirm(`Are you sure you want to permanently delete tenant "${tenantId}" and all its feedback records?`)) {
       try {
         await apiDeleteOwnerTenant(tenantId);
@@ -495,11 +491,6 @@ export default function ProductOwnerDashboard({
                                 <h3 className="font-google font-bold text-base text-white">
                                   {t.businessName}
                                 </h3>
-                                {t.isDefault && (
-                                  <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    Primary Default
-                                  </span>
-                                )}
                               </div>
                               <p className="text-xs text-slate-400">
                                 {t.businessCategory || 'Café & Restaurant'} · Slug: <code className="text-purple-300 font-mono">?tenant={t.id}</code>
@@ -516,16 +507,14 @@ export default function ProductOwnerDashboard({
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
-                            {t.id !== 'loop' && (
-                              <button
-                                onClick={() => handleDeleteTenant(t.id)}
-                                type="button"
-                                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                                title="Delete Tenant"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleDeleteTenant(t.id)}
+                              type="button"
+                              className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                              title="Delete Tenant"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
 

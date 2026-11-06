@@ -38,7 +38,7 @@ export default function AdminPanel({
   const getLiveAppUrl = () => {
     if (typeof window !== 'undefined') {
       const base = window.location.origin;
-      const tenantParam = currentUser?.tenantId && currentUser.tenantId !== 'loop' ? `?tenant=${currentUser.tenantId}` : '';
+      const tenantParam = currentUser?.tenantId ? `?tenant=${currentUser.tenantId}` : '';
       return `${base}/${tenantParam}`;
     }
     return '';
