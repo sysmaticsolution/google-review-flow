@@ -52,9 +52,12 @@ export default function GoogleReviewForm({
         <div className="p-4 sm:p-5 pt-3">
           <div className="flex items-start gap-3.5 -mt-10 sm:-mt-12 mb-3">
             <img
-              src={business.avatarUrl}
+              src={business.avatarUrl || business.coverPhoto || '/images/loop-avatar.jpg'}
               alt={business.businessName}
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-4 border-white shadow-md bg-white shrink-0"
+              onError={(e) => {
+                e.target.src = business.coverPhoto || '/images/loop-avatar.jpg';
+              }}
             />
             <div className="pt-7 sm:pt-9 min-w-0 flex-1">
               <h2 className="font-google font-bold text-gray-900 text-lg sm:text-xl truncate">

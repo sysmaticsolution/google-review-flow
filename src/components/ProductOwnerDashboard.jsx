@@ -592,14 +592,20 @@ export default function ProductOwnerDashboard({
                         {/* Tenant Top Bar */}
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
-                            <img
-                              src={t.avatarUrl || '/images/loop-avatar.jpg'}
-                              alt={t.businessName}
-                              className="w-12 h-12 rounded-2xl object-cover bg-slate-800 border border-slate-700 shadow-sm"
-                              onError={(e) => {
-                                e.target.src = '/images/loop-avatar.jpg';
-                              }}
-                            />
+                            {t.coverPhoto ? (
+                              <img
+                                src={t.coverPhoto}
+                                alt={t.businessName}
+                                className="w-12 h-12 rounded-2xl object-cover bg-slate-800 border border-slate-700 shadow-sm"
+                                onError={(e) => {
+                                  e.target.src = '/images/loop-cover.jpg';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-sm">
+                                <Store className="w-6 h-6" />
+                              </div>
+                            )}
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="font-google font-bold text-base text-white">
@@ -1064,21 +1070,13 @@ export default function ProductOwnerDashboard({
                 </div>
               </div>
 
-              {/* Upload Images (No URL needed) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
-                <ImageUploadField
-                  label="Avatar / Business Logo"
-                  value={newTenantForm.avatarUrl}
-                  onChange={(val) => setNewTenantForm({ ...newTenantForm, avatarUrl: val })}
-                  placeholder="Upload Logo"
-                  isBanner={false}
-                  namePrefix="logo"
-                />
+              {/* Upload Cover Photo (No URL needed) */}
+              <div className="p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
                 <ImageUploadField
                   label="Cover Photo / Store Banner"
                   value={newTenantForm.coverPhoto}
                   onChange={(val) => setNewTenantForm({ ...newTenantForm, coverPhoto: val })}
-                  placeholder="Upload Cover Banner"
+                  placeholder="Upload Store Cover Photo"
                   isBanner={true}
                   namePrefix="cover"
                 />
@@ -1225,21 +1223,13 @@ export default function ProductOwnerDashboard({
                 />
               </div>
 
-              {/* Upload Images (No URL needed) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
-                <ImageUploadField
-                  label="Avatar / Business Logo"
-                  value={editForm.avatarUrl}
-                  onChange={(val) => setEditForm({ ...editForm, avatarUrl: val })}
-                  placeholder="Upload Logo"
-                  isBanner={false}
-                  namePrefix="logo"
-                />
+              {/* Upload Cover Photo (No URL needed) */}
+              <div className="p-3 bg-slate-950/50 rounded-2xl border border-slate-800/80">
                 <ImageUploadField
                   label="Cover Photo / Store Banner"
                   value={editForm.coverPhoto}
                   onChange={(val) => setEditForm({ ...editForm, coverPhoto: val })}
-                  placeholder="Upload Cover Banner"
+                  placeholder="Upload Store Cover Photo"
                   isBanner={true}
                   namePrefix="cover"
                 />
