@@ -164,24 +164,14 @@ export default function AdminLogin({
 
             {/* Role switchers / navigation */}
             <div className="pt-2 flex flex-col items-center gap-1.5 text-center text-xs text-gray-500">
-              {onNavigate && (
-                isOwnerPage ? (
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/login')}
-                    className="text-gray-600 hover:text-gray-900 hover:underline cursor-pointer font-medium"
-                  >
-                    Looking for Store Manager Login? Click here (/login) →
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/owner')}
-                    className="text-purple-600 hover:text-purple-800 hover:underline cursor-pointer font-medium"
-                  >
-                    Product Owner Master Portal (/owner) →
-                  </button>
-                )
+              {onNavigate && isOwnerPage && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/login')}
+                  className="text-gray-600 hover:text-gray-900 hover:underline cursor-pointer font-medium"
+                >
+                  Looking for Store Manager Login? Click here (/login) →
+                </button>
               )}
 
               {isStandalonePage && onGoHome && (
