@@ -35,11 +35,12 @@ function getAuthHeaders() {
 }
 
 // ----------------------------------------------------
-// SETTINGS
+// PUBLIC SETTINGS / BUSINESS PROFILE
 // ----------------------------------------------------
-export async function apiFetchSettings() {
+export async function apiFetchSettings(tenantId) {
   try {
-    const res = await fetch('/api/settings');
+    const url = tenantId ? `/api/settings?tenant=${encodeURIComponent(tenantId)}` : '/api/settings';
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load settings from server');
     return await res.json();
   } catch (err) {
@@ -132,6 +133,162 @@ export async function apiClearFeedbacks() {
 }
 
 // ----------------------------------------------------
+// TENANT STORE MANAGER API (/api/tenant)
+// ----------------------------------------------------
+export async function apiFetchTenantMyData() {
+  try {
+    const res = await fetch('/api/tenant/my-data', {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch store manager profile');
+    return await res.json();
+  } catch (err) {
+    console.error('[API] Error fetching store manager profile:', err);
+    throw err;
+  }
+}
+
+export async function apiFetchTenantFeedbacks() {
+  try {
+    const res = await fetch('/api/tenant/my-feedbacks', {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch store feedbacks');
+    return await res.json();
+  } catch (err) {
+    console.error('[API] Error fetching store feedbacks:', err);
+    throw err;
+  }
+}
+
+export async function apiClearTenantFeedbacks() {
+  try {
+    const res = await fetch('/api/tenant/my-feedbacks', {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+    if (!res.ok) throw new Error('Failed to delete store feedbacks');
+    return await res.json();
+  } catch (err) {
+    console.error('[API] Error deleting store feedbacks:', err);
+    throw err;
+  }
+}
+
+// ----------------------------------------------------
+// PRODUCT OWNER MULTI-TENANT MASTER API (/api/owner)
+// ----------------------------------------------------
+export async function apiFetchOwnerTenants() {
+  try {
+    const res = await fetch('/api/owner/tenants', {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch tenants list');
+    return await res.json();
+  } catch (err) {
+    console.error('[API] Error fetching tenants list:', err);
+    throw err;
+  }
+}
+
+export async function apiCreateOwnerTenant(payload) {
+  try {
+    const res = await fetch('/api/owner/tenants', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to create tenant');
+    }
+    return data;
+  } catch (err) {
+    console.error('[API] Error creating tenant:', err);
+    throw err;
+  }
+}
+
+export async function apiUpdateOwnerTenant(id, payload) {
+  try {
+    const res = await fetch(`/api/owner/tenants/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update tenant');
+    }
+    return data;
+  } catch (err) {
+    console.error('[API] Error updating tenant:', err);
+    throw err;
+  }
+}
+
+export async function apiDeleteOwnerTenant(id) {
+  try {
+    const res = await fetch(`/api/owner/tenants/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to delete tenant');
+    }
+    return data;
+  } catch (err) {
+    console.error('[API] Error deleting tenant:', err);
+    throw err;
+  }
+}
+
+export async function apiUpdateOwnerCredentials({ currentPassword, newEmail, newPassword }) {
+  try {
+    const res = await fetch('/api/owner/credentials', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ currentPassword, newEmail, newPassword }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update Product Owner credentials');
+    }
+
+    if (data.user) {
+      const currentToken = getStoredToken();
+      saveAuthSession(data.user, currentToken, true);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('[API] Error updating owner credentials:', err);
+    throw err;
+  }
+}
+
+// ----------------------------------------------------
 // AUTHENTICATION
 // ----------------------------------------------------
 export async function apiLogin(email, password, rememberMe = true) {
@@ -197,4 +354,3 @@ export async function apiUpdateCredentials({ currentPassword, newEmail, newPassw
     throw err;
   }
 }
-

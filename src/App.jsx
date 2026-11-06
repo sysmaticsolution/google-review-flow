@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   apiFetchSettings,
-  apiUpdateSettings,
   apiSubmitFeedback,
   apiFetchFeedbacks,
   apiClearFeedbacks,
@@ -19,6 +18,7 @@ import GoogleReviewForm from './components/GoogleReviewForm';
 import LowRatingFeedback from './components/LowRatingFeedback';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
+import ProductOwnerDashboard from './components/ProductOwnerDashboard';
 import { ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -31,7 +31,7 @@ export default function App() {
   const [activeStep, setActiveStep] = useState('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Router: support dedicated /login and /admin routes
+  // Router: support /, /login, and /owner
   const [currentPath, setCurrentPath] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.location.pathname.toLowerCase();
@@ -52,12 +52,16 @@ export default function App() {
     setCurrentPath(path.toLowerCase());
   };
 
+  const isOwnerRoute = currentPath === '/owner' || currentPath.startsWith('/owner');
   const isLoginRoute = currentPath === '/login' || currentPath === '/admin' || currentPath.startsWith('/login');
 
-  // Load settings from SQLite backend on initial mount
+  // Load tenant settings on mount (supports ?tenant=<slug> for multi-tenant customer page)
   useEffect(() => {
     let isMounted = true;
-    apiFetchSettings()
+    const params = new URLSearchParams(window.location.search);
+    const tenantParam = params.get('tenant') || params.get('tenantId');
+
+    apiFetchSettings(tenantParam)
       .then((serverSettings) => {
         if (isMounted && serverSettings) {
           setBusiness(serverSettings);
@@ -71,7 +75,7 @@ export default function App() {
     };
   }, []);
 
-  // Fetch feedbacks from SQLite whenever authenticated
+  // Fetch feedbacks whenever authenticated
   useEffect(() => {
     if (currentUser) {
       apiFetchFeedbacks()
@@ -88,7 +92,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Check URL params for quick testing or table QR identification
+  // Check URL params for quick testing
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const starParam = params.get('stars');
@@ -111,7 +115,7 @@ export default function App() {
       // 1, 2, or 3 Stars -> Stay inside application for private feedback
       setActiveStep('low_feedback');
     } else {
-      // > 3 rating (4 or 5 Stars) -> Directly open Google Review page immediately!
+      // > 3 rating (4 or 5 Stars) -> Directly open authentic Google Review page immediately!
       redirectToGoogleReview();
     }
   };
@@ -125,8 +129,14 @@ export default function App() {
   const handleSubmitLowFeedback = async (feedbackPayload) => {
     setIsSubmitting(true);
     try {
+      // Attach tenant id if not already present
+      const payloadWithTenant = {
+        tenantId: business.id || 'loop',
+        ...feedbackPayload,
+      };
+
       // 1. Submit to SQLite backend
-      const saved = await apiSubmitFeedback(feedbackPayload);
+      const saved = await apiSubmitFeedback(payloadWithTenant);
       if (saved) {
         setFeedbacks((prev) => [saved, ...prev]);
       }
@@ -137,18 +147,6 @@ export default function App() {
       setFeedbacks(getStoredFeedbacks());
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleSaveBusiness = async (updatedSettings) => {
-    try {
-      const saved = await apiUpdateSettings(updatedSettings);
-      setBusiness(saved);
-      saveStoredSettings(saved);
-    } catch (err) {
-      console.warn('Backend update failed, saving locally:', err);
-      setBusiness(updatedSettings);
-      saveStoredSettings(updatedSettings);
     }
   };
 
@@ -174,6 +172,13 @@ export default function App() {
     } catch (e) {
       // ignore
     }
+
+    // Role-based route redirection
+    if (user.role === 'product_owner') {
+      navigateTo('/owner');
+    } else {
+      navigateTo('/login');
+    }
   };
 
   const handleLogout = async () => {
@@ -182,30 +187,97 @@ export default function App() {
   };
 
   // -------------------------------------------------------------------------
-  // ROUTE: /login or /admin (Dedicated Admin Portal)
+  // ROUTE 1: /owner (Dedicated Product Owner Multi-Tenant Master Portal)
+  // -------------------------------------------------------------------------
+  if (isOwnerRoute) {
+    if (!currentUser) {
+      return (
+        <AdminLogin
+          isStandalonePage={true}
+          isOwnerPage={true}
+          onLoginSuccess={handleLoginSuccess}
+          onGoHome={() => navigateTo('/')}
+          onNavigate={navigateTo}
+        />
+      );
+    }
+
+    // If a Store Manager logged in while at /owner, allow switching to /login
+    if (currentUser.role !== 'product_owner') {
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center">
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">Store Manager Detected</h3>
+            <p className="text-xs text-slate-400 mb-6">
+              You are logged in as a Store Manager ({currentUser.email}). The Product Owner Master portal requires master credentials.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => navigateTo('/login')}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Go to Store Manager Portal (/login)
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium cursor-pointer"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <ProductOwnerDashboard
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onGoHome={() => navigateTo('/')}
+      />
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // ROUTE 2: /login (Dedicated Store Manager Portal - ONLY 2 TABS)
   // -------------------------------------------------------------------------
   if (isLoginRoute) {
     if (!currentUser) {
       return (
         <AdminLogin
           isStandalonePage={true}
+          isOwnerPage={false}
           onLoginSuccess={handleLoginSuccess}
+          onGoHome={() => navigateTo('/')}
+          onNavigate={navigateTo}
+        />
+      );
+    }
+
+    // If Product Owner lands on /login, redirect or render Product Owner Dashboard
+    if (currentUser.role === 'product_owner') {
+      return (
+        <ProductOwnerDashboard
+          currentUser={currentUser}
+          onLogout={handleLogout}
           onGoHome={() => navigateTo('/')}
         />
       );
     }
 
+    // Store Manager / Tenant Admin gets ONLY the 2 tabs:
+    // 1) QR Code & Stand
+    // 2) Private Feedback Inbox
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-3 sm:p-6 selection:bg-blue-500 selection:text-white">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-3 sm:p-6 selection:bg-blue-500 selection:text-white">
         <AdminPanel
           business={business}
           feedbacks={feedbacks}
           currentUser={currentUser}
           onLogout={handleLogout}
-          onSaveBusiness={handleSaveBusiness}
           onFeedbacksChange={setFeedbacks}
           onClearFeedbacks={handleClearFeedbacks}
-          onUserUpdate={(updatedUser) => setCurrentUser(updatedUser)}
           onGoHome={() => navigateTo('/')}
         />
       </div>
@@ -213,7 +285,7 @@ export default function App() {
   }
 
   // -------------------------------------------------------------------------
-  // ROUTE: / (Customer Review Page - Clean, No Header, No Admin Leakage)
+  // ROUTE 3: / (Public Customer Review Page - Clean, No Header, No Admin Leakage)
   // -------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex flex-col justify-between font-roboto selection:bg-blue-100 selection:text-blue-900">

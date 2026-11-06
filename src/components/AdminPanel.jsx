@@ -3,14 +3,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   QrCode,
   Inbox,
-  Settings,
   Download,
   Trash2,
-  ExternalLink,
-  Save,
   CheckCircle,
   Copy,
-  AlertTriangle,
   FileSpreadsheet,
   X,
   Phone,
@@ -19,60 +15,40 @@ import {
   Building,
   LogOut,
   ShieldCheck,
-  UserCheck,
-  KeyRound,
-  Lock,
-  Eye,
-  EyeOff,
-  ShieldAlert
+  Store,
+  ExternalLink
 } from 'lucide-react';
 import { clearStoredFeedbacks } from '../utils/storage';
-import { apiUpdateCredentials } from '../utils/api';
 
 export default function AdminPanel({
   business,
-  feedbacks,
+  feedbacks = [],
   currentUser,
   onLogout,
-  onSaveBusiness,
   onFeedbacksChange,
   onClearFeedbacks,
-  onUserUpdate,
   onGoHome,
   onClose,
 }) {
-  const [activeTab, setActiveTab] = useState('qr'); // 'qr' | 'inbox' | 'settings' | 'security'
-  const [settingsForm, setSettingsForm] = useState({ ...business });
-  const [savedNotice, setSavedNotice] = useState(false);
+  // Store Manager / Tenant Admin only sees 2 tabs: 'qr' and 'inbox'
+  const [activeTab, setActiveTab] = useState('qr');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Security Credentials Config State
-  const [credEmail, setCredEmail] = useState(currentUser?.email || 'info@veltron.in');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPass, setShowCurrentPass] = useState(false);
-  const [showNewPass, setShowNewPass] = useState(false);
-  const [credError, setCredError] = useState('');
-  const [credSuccess, setCredSuccess] = useState('');
-  const [isSavingCreds, setIsSavingCreds] = useState(false);
-
-  // Dynamically uses the current live application page URL
+  // Dynamically uses the current live application page URL for this tenant
   const getLiveAppUrl = () => {
     if (typeof window !== 'undefined') {
-      return window.location.origin + window.location.pathname;
+      const base = window.location.origin;
+      const tenantParam = currentUser?.tenantId && currentUser.tenantId !== 'loop' ? `?tenant=${currentUser.tenantId}` : '';
+      return `${base}/${tenantParam}`;
     }
     return '';
   };
 
   const [customQrUrl, setCustomQrUrl] = useState(getLiveAppUrl);
 
-  const handleSaveSettings = (e) => {
-    e.preventDefault();
-    onSaveBusiness(settingsForm);
-    setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 3000);
-  };
+  useEffect(() => {
+    setCustomQrUrl(getLiveAppUrl());
+  }, [currentUser]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(customQrUrl);
@@ -98,7 +74,8 @@ export default function AdminPanel({
 
       const pngFile = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
-      downloadLink.download = `${settingsForm.businessName.replace(/\s+/g, '-').toLowerCase()}-google-review-qr.png`;
+      const fileName = (business?.businessName || 'store').replace(/\s+/g, '-').toLowerCase();
+      downloadLink.download = `${fileName}-google-review-qr.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
     };
@@ -112,57 +89,13 @@ export default function AdminPanel({
         await onClearFeedbacks();
       } else {
         clearStoredFeedbacks();
-        onFeedbacksChange([]);
+        if (onFeedbacksChange) onFeedbacksChange([]);
       }
-    }
-  };
-
-  const handleUpdateCredentials = async (e) => {
-    e.preventDefault();
-    setCredError('');
-    setCredSuccess('');
-
-    if (!currentPassword) {
-      setCredError('Please enter your current password to authorize changes.');
-      return;
-    }
-
-    if (newPassword && newPassword.length < 6) {
-      setCredError('New password must be at least 6 characters long.');
-      return;
-    }
-
-    if (newPassword && newPassword !== confirmPassword) {
-      setCredError('New passwords do not match. Please re-enter.');
-      return;
-    }
-
-    setIsSavingCreds(true);
-    try {
-      const result = await apiUpdateCredentials({
-        currentPassword,
-        newEmail: credEmail,
-        newPassword: newPassword || undefined,
-      });
-
-      setIsSavingCreds(false);
-      setCredSuccess('Super Admin credentials updated successfully in database!');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
-      if (onUserUpdate && result.user) {
-        onUserUpdate(result.user);
-      }
-      setTimeout(() => setCredSuccess(''), 4000);
-    } catch (err) {
-      setIsSavingCreds(false);
-      setCredError(err.message || 'Failed to update credentials. Please check current password.');
     }
   };
 
   const handleExportCSV = () => {
-    if (feedbacks.length === 0) return;
+    if (!feedbacks || feedbacks.length === 0) return;
     const headers = ['Date', 'Rating', 'Ticket ID', 'Customer Name', 'Contact', 'Issues', 'Feedback', 'Status'];
     const rows = feedbacks.map((fb) => [
       new Date(fb.createdAt).toLocaleString(),
@@ -192,23 +125,23 @@ export default function AdminPanel({
         <div className="bg-gray-900 text-white p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400">
-              <Building className="w-5 h-5" />
+              <Store className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-google font-bold text-lg text-white">
-                  Super Admin Dashboard
+                  Store Manager Portal
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   <span>Authorized</span>
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-2xs font-mono font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                  SQLite: reviews.sqlite
+                <span className="px-2 py-0.5 rounded-full text-2xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {business?.businessName || 'Loop'}
                 </span>
               </div>
               <p className="text-xs text-gray-400">
-                Logged in as: <strong className="text-gray-200">{currentUser?.email || 'info@veltron.in'}</strong> ({currentUser?.role || 'Super Admin'})
+                Logged in as: <strong className="text-gray-200">{currentUser?.email || 'info@veltron.in'}</strong>
               </p>
             </div>
           </div>
@@ -221,14 +154,14 @@ export default function AdminPanel({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/10 hover:bg-white/20 text-gray-200 border border-white/20 transition-colors cursor-pointer"
                 title="View customer review page"
               >
-                <span>Review Page (/)</span>
+                <span>Customer Page</span>
               </button>
             )}
             <button
               onClick={onLogout}
               type="button"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 transition-colors cursor-pointer"
-              title="Lock backend and sign out"
+              title="Sign out"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Log out</span>
@@ -245,8 +178,8 @@ export default function AdminPanel({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 flex gap-2 sm:gap-6 text-sm font-medium">
+        {/* Navigation Tabs - STRICTLY 2 TABS */}
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 flex gap-3 sm:gap-6 text-sm font-medium">
           <button
             onClick={() => setActiveTab('qr')}
             className={`py-3 px-2 border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
@@ -270,35 +203,11 @@ export default function AdminPanel({
             <Inbox className="w-4 h-4" />
             <span>Private Feedback Inbox ({feedbacks.length})</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`py-3 px-2 border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
-              activeTab === 'settings'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Google Review Link & Config</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`py-3 px-2 border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
-              activeTab === 'security'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <KeyRound className="w-4 h-4" />
-            <span>Admin Login & Password</span>
-          </button>
         </div>
 
         {/* Tab Content */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-          {/* TAB 1: QR CODE */}
+          {/* TAB 1: QR CODE & STAND */}
           {activeTab === 'qr' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -315,7 +224,7 @@ export default function AdminPanel({
                   </div>
 
                   <h4 className="font-google font-bold text-gray-900 text-base mb-1">
-                    {business.businessName}
+                    {business?.businessName || 'Loop'}
                   </h4>
                   <p className="text-2xs text-gray-500 mb-4">
                     Scan with your phone camera to leave a quick review
@@ -344,7 +253,7 @@ export default function AdminPanel({
                       Target QR Code URL
                     </h4>
                     <p className="text-xs text-gray-500 mb-2">
-                      When a customer scans this QR code at your checkout counter, tables, or receipt, it immediately opens this review flow.
+                      When a customer scans this QR code at your checkout counter or tables, it automatically opens your business review flow.
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -374,6 +283,11 @@ export default function AdminPanel({
                       <span>Download High-Res QR Code (PNG)</span>
                     </button>
                   </div>
+
+                  <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-2xs text-blue-800">
+                    <span className="font-semibold block mb-0.5">Printing instructions:</span>
+                    Print in 4x6" or 5x7" acrylic tent stands for dining tables or front checkout desk for maximum scan rates.
+                  </div>
                 </div>
               </div>
             </div>
@@ -392,7 +306,7 @@ export default function AdminPanel({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {feedbacks.length > 0 && (
+                  {feedbacks && feedbacks.length > 0 && (
                     <>
                       <button
                         onClick={handleExportCSV}
@@ -415,7 +329,7 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              {feedbacks.length === 0 ? (
+              {(!feedbacks || feedbacks.length === 0) ? (
                 <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2 opacity-80" />
                   <p className="text-sm font-medium text-gray-700">No negative reviews logged yet!</p>
@@ -448,22 +362,12 @@ export default function AdminPanel({
                         </div>
                       </div>
 
-                      {/* Customer Contact */}
-                      {item.customerContact && item.customerContact !== 'Not provided' && (
-                        <div className="text-xs text-blue-700 bg-blue-50/70 p-2 rounded-lg mb-2 flex items-center gap-2">
-                          <Mail className="w-3.5 h-3.5 shrink-0" />
-                          <span className="font-medium">Customer Contact:</span>
-                          <span>{item.customerContact}</span>
-                        </div>
-                      )}
-
-                      {/* Issues badges */}
                       {item.issues && item.issues.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {item.issues.map((issue, idx) => (
                             <span
                               key={idx}
-                              className="text-2xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200"
+                              className="px-2 py-0.5 rounded-full text-2xs bg-gray-100 text-gray-600 font-medium border border-gray-200"
                             >
                               {issue}
                             </span>
@@ -471,293 +375,32 @@ export default function AdminPanel({
                         </div>
                       )}
 
-                      {/* Comments */}
-                      <p className="text-xs text-gray-700 bg-gray-50/80 p-2.5 rounded-lg border border-gray-100">
-                        "{item.feedbackText || 'No extra written notes provided.'}"
-                      </p>
+                      {item.feedbackText && (
+                        <p className="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100 mb-2 italic">
+                          "{item.feedbackText}"
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between text-2xs text-gray-500 pt-2 border-t border-gray-100 gap-2">
+                        <div className="flex items-center gap-3">
+                          {item.customerContact && item.customerContact !== 'Not provided' && (
+                            <span className="flex items-center gap-1 text-gray-600">
+                              <Phone className="w-3 h-3 text-gray-400" />
+                              <span>{item.customerContact}</span>
+                            </span>
+                          )}
+                          <span className="text-gray-400">
+                            Follow-up: {item.wantFollowUp ? 'Customer requested contact' : 'No follow-up requested'}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                          {item.status || 'Pending Review'}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* TAB 3: SETTINGS */}
-          {activeTab === 'settings' && (
-            <form onSubmit={handleSaveSettings} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Business Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={settingsForm.businessName}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, businessName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Category (e.g. Italian Restaurant, Dental Clinic)
-                  </label>
-                  <input
-                    type="text"
-                    value={settingsForm.businessCategory}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, businessCategory: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Full Business Address
-                </label>
-                <input
-                  type="text"
-                  value={settingsForm.address}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
-                  className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Google Review Direct URL (Target for 4-5 Stars) <span className="text-red-500">*</span>
-                  </label>
-                  <a
-                    href="https://support.google.com/business/answer/7035772"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-2xs text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    <span>How to find your Place ID?</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                </div>
-                <input
-                  type="url"
-                  required
-                  value={settingsForm.googleReviewUrl}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, googleReviewUrl: e.target.value })}
-                  placeholder="https://search.google.com/local/writereview?placeid=..."
-                  className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
-                />
-                <p className="text-2xs text-gray-400 mt-1">
-                  This is the exact Google Maps URL where users who give 4 or 5 stars will be redirected.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Manager Alert Email
-                  </label>
-                  <input
-                    type="email"
-                    value={settingsForm.managerEmail}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, managerEmail: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Manager Phone
-                  </label>
-                  <input
-                    type="text"
-                    value={settingsForm.managerPhone}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, managerPhone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between border-t border-gray-200">
-                {savedNotice && (
-                  <span className="text-xs text-green-700 font-medium flex items-center gap-1 animate-fadeIn">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Settings saved successfully!</span>
-                  </span>
-                )}
-                <div className="ml-auto">
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 px-5 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-xs sm:text-sm font-medium rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Save Changes</span>
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* TAB 4: SECURITY & CREDENTIALS */}
-          {activeTab === 'security' && (
-            <div className="space-y-6 max-w-xl mx-auto">
-              {/* Account summary banner */}
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3.5 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
-                    <KeyRound className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-google font-bold text-base text-white">
-                      Super Admin Credentials
-                    </h4>
-                    <p className="text-xs text-gray-300">
-                      Configure your login email/username and password stored in the SQLite database.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-2xs text-gray-300">
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Active Login Account: <strong>{currentUser?.email || credEmail}</strong></span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 font-mono text-cyan-300">
-                    Database: reviews.sqlite
-                  </span>
-                </div>
-              </div>
-
-              {/* Feedback messages */}
-              {credError && (
-                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-start gap-2.5 animate-fadeIn">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{credError}</span>
-                </div>
-              )}
-
-              {credSuccess && (
-                <div className="p-3.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs flex items-center gap-2.5 animate-fadeIn">
-                  <CheckCircle className="w-4 h-4 shrink-0 text-green-600" />
-                  <span className="font-medium">{credSuccess}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleUpdateCredentials} className="space-y-4 bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs">
-                {/* Username / Email */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Super Admin Username / Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={credEmail}
-                      onChange={(e) => setCredEmail(e.target.value)}
-                      placeholder="e.g. info@veltron.in"
-                      className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                  </div>
-                  <p className="text-2xs text-gray-400 mt-1">
-                    Used to authenticate on the Super Admin login screen.
-                  </p>
-                </div>
-
-                {/* Current Password */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Current Password <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showCurrentPass ? 'text' : 'password'}
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter your current password to authorize changes"
-                      className="w-full pl-9 pr-10 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPass(!showCurrentPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                    >
-                      {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-3">
-                  <div className="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Change Password (Optional)</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* New Password */}
-                    <div>
-                      <label className="block text-2xs font-medium text-gray-600 mb-1">
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showNewPass ? 'text' : 'password'}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Min 6 characters"
-                          className="w-full px-3 py-2 pr-9 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPass(!showNewPass)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                        >
-                          {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                      <label className="block text-2xs font-medium text-gray-600 mb-1">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type={showNewPass ? 'text' : 'password'}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-enter new password"
-                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-2xs text-gray-400 mt-1.5">
-                    Leave new password fields blank if you only wish to change your username/email.
-                  </p>
-                </div>
-
-                {/* Submit Action */}
-                <div className="pt-3 border-t border-gray-100 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSavingCreds}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs sm:text-sm font-medium rounded-xl shadow-xs transition-all cursor-pointer active:scale-98"
-                  >
-                    {isSavingCreds ? (
-                      <>
-                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Updating Database...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        <span>Save Security Credentials</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
             </div>
           )}
         </div>
@@ -765,4 +408,3 @@ export default function AdminPanel({
     </div>
   );
 }
-

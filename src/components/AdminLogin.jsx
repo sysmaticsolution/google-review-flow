@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, X, KeyRound, Building2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, X, KeyRound, Building2, Store } from 'lucide-react';
 import { apiLogin } from '../utils/api';
-import { SUPER_ADMIN_CREDENTIALS } from '../utils/auth';
 
-export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage = false, onGoHome }) {
+export default function AdminLogin({
+  onLoginSuccess,
+  onClose,
+  isStandalonePage = false,
+  isOwnerPage = false,
+  onGoHome,
+  onNavigate,
+}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,16 +37,21 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
   };
 
   const handleFillDemoCredentials = () => {
-    setEmail(SUPER_ADMIN_CREDENTIALS.email);
-    setPassword(SUPER_ADMIN_CREDENTIALS.password);
+    if (isOwnerPage) {
+      setEmail('owner@veltron.in');
+      setPassword('ownerpassword123');
+    } else {
+      setEmail('info@veltron.in');
+      setPassword('password123');
+    }
     setErrorMessage('');
   };
 
   return (
-    <div className={isStandalonePage ? "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 selection:bg-blue-500 selection:text-white" : "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"}>
+    <div className={isStandalonePage ? "min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-purple-600 selection:text-white" : "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"}>
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-scaleUp">
         {/* Top Header */}
-        <div className="bg-gray-900 text-white p-6 relative">
+        <div className={`p-6 relative text-white ${isOwnerPage ? 'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900' : 'bg-gray-900'}`}>
           {onClose && !isStandalonePage && (
             <button
               onClick={onClose}
@@ -52,20 +63,26 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
           )}
 
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400 shadow-inner">
-              <Lock className="w-6 h-6" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+              isOwnerPage
+                ? 'bg-purple-600/30 border border-purple-400/40 text-purple-300'
+                : 'bg-blue-600/30 border border-blue-400/40 text-blue-400'
+            }`}>
+              {isOwnerPage ? <Building2 className="w-6 h-6" /> : <Store className="w-6 h-6" />}
             </div>
             <div>
               <h3 className="font-google font-bold text-lg text-white">
-                Authorized Personnel Only
+                {isOwnerPage ? 'Product Owner Portal' : 'Store Manager Portal'}
               </h3>
-              <p className="text-xs text-gray-400">
-                Super Admin Authentication
+              <p className="text-xs text-gray-300">
+                {isOwnerPage ? 'Multi-Tenant Platform Control' : 'QR Stand & Feedback Inbox Access'}
               </p>
             </div>
           </div>
           <p className="text-2xs text-gray-300 mt-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-            Protected backend: Only authorized management can view private customer feedback, ratings, and sensitive contact data.
+            {isOwnerPage
+              ? 'Authorized Product Owner only: Manage all tenants, Google Review configs, and store manager credentials.'
+              : 'Authorized store manager only: View customer QR code stand and private feedback inbox.'}
           </p>
         </div>
 
@@ -81,17 +98,17 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Super Admin Email
+                {isOwnerPage ? 'Product Owner Email' : 'Store Manager Email'}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
-                  placeholder="info@veltron.in"
+                  placeholder={isOwnerPage ? 'owner@veltron.in' : 'info@veltron.in'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -108,7 +125,7 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
@@ -126,7 +143,7 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                  className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
                 />
                 <span>Remember this session</span>
               </label>
@@ -134,22 +151,34 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
               <button
                 type="button"
                 onClick={handleFillDemoCredentials}
-                className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-2xs cursor-pointer"
+                className="text-purple-600 hover:text-purple-800 hover:underline font-medium text-2xs cursor-pointer"
               >
-                Auto-fill Credentials
+                Auto-fill
               </button>
             </div>
 
             {/* Quick credentials hint */}
-            <div className="p-2.5 bg-blue-50/70 border border-blue-200/60 rounded-xl text-2xs text-blue-900 flex items-center justify-between">
+            <div className={`p-2.5 rounded-xl text-2xs flex items-center justify-between ${
+              isOwnerPage
+                ? 'bg-purple-50 border border-purple-200/80 text-purple-900'
+                : 'bg-blue-50/70 border border-blue-200/60 text-blue-900'
+            }`}>
               <div>
-                <span className="font-semibold block">Configured Super Admin:</span>
-                <span className="text-gray-600 font-mono">info@veltron.in</span> / <span className="text-gray-600 font-mono">password123</span>
+                <span className="font-semibold block">
+                  {isOwnerPage ? 'Product Owner Account:' : 'Store Manager Account:'}
+                </span>
+                <span className="text-gray-600 font-mono">
+                  {isOwnerPage ? 'owner@veltron.in' : 'info@veltron.in'}
+                </span> / <span className="text-gray-600 font-mono">
+                  {isOwnerPage ? 'ownerpassword123' : 'password123'}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={handleFillDemoCredentials}
-                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-2xs font-medium cursor-pointer"
+                className={`px-2 py-1 text-white rounded-md text-2xs font-medium cursor-pointer ${
+                  isOwnerPage ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
                 Insert
               </button>
@@ -159,7 +188,11 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 bg-gray-900 hover:bg-black text-white font-medium text-sm rounded-xl transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+                className={`w-full py-3 px-4 text-white font-medium text-sm rounded-xl transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2 ${
+                  isOwnerPage
+                    ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30'
+                    : 'bg-gray-900 hover:bg-black'
+                }`}
               >
                 {isLoading ? (
                   <>
@@ -169,27 +202,47 @@ export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage =
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Unlock Backend Data</span>
+                    <span>{isOwnerPage ? 'Enter Product Owner Portal' : 'Enter Store Portal'}</span>
                   </>
                 )}
               </button>
             </div>
 
-            {isStandalonePage && onGoHome && (
-              <div className="pt-2 text-center">
+            {/* Role switchers / navigation */}
+            <div className="pt-2 flex flex-col items-center gap-1.5 text-center text-xs text-gray-500">
+              {onNavigate && (
+                isOwnerPage ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/login')}
+                    className="text-gray-600 hover:text-gray-900 hover:underline cursor-pointer font-medium"
+                  >
+                    Looking for Store Manager Login? Click here (/login) →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/owner')}
+                    className="text-purple-600 hover:text-purple-800 hover:underline cursor-pointer font-medium"
+                  >
+                    Product Owner Master Portal (/owner) →
+                  </button>
+                )
+              )}
+
+              {isStandalonePage && onGoHome && (
                 <button
                   type="button"
                   onClick={onGoHome}
-                  className="text-xs text-gray-500 hover:text-gray-900 hover:underline font-medium cursor-pointer inline-flex items-center gap-1"
+                  className="text-gray-400 hover:text-gray-700 hover:underline cursor-pointer inline-flex items-center gap-1 text-2xs pt-1"
                 >
                   <span>← Return to Customer Review Page</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </form>
         </div>
       </div>
     </div>
   );
 }
-
