@@ -104,14 +104,17 @@ All backend data (customer complaints, contact info, ratings, business settings,
 - **Role:** `Super Admin`
 
 To access backend data:
-1. Click **"Super Admin Login"** in the top navigation or **"Backend Data (Authorized Personnel Only)"** in the footer.
+1. Navigate directly to the login portal: **`https://reviewflow.veltron.in/login`** (or `http://127.0.0.1:5173/login`).
 2. Enter the Super Admin credentials (or use the one-click **"Auto-fill Credentials"** helper).
 3. Once authenticated:
    - View the **Private Feedback Inbox** (1–3 star intercepted complaints).
    - Export reports to **CSV**.
    - Configure the **Google Place Review URL** and business details.
+   - Configure **Admin Username & Password**.
    - Generate and download the high-res **Table Stand QR Code**.
    - Click **"Log out"** anytime to lock the backend.
+
+> **Note:** The public customer-facing page (`/`) is completely clean with no admin headers or buttons. All management tools are securely isolated to `/login`.
 
 ---
 

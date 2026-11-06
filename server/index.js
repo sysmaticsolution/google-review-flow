@@ -2,7 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import crypto from 'node:crypto';
 import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { db } from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, '../dist');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -332,6 +339,20 @@ app.post('/api/auth/logout', (req, res) => {
   }
   return res.json({ success: true });
 });
+
+// Serve frontend static assets in production & handle SPA fallback (e.g. /login)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+    }
+    next();
+  });
+}
 
 // Start Express SQLite Server
 app.listen(PORT, '0.0.0.0', () => {

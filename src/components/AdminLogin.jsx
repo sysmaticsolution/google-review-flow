@@ -3,7 +3,7 @@ import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, X, KeyRound, Buildin
 import { apiLogin } from '../utils/api';
 import { SUPER_ADMIN_CREDENTIALS } from '../utils/auth';
 
-export default function AdminLogin({ onLoginSuccess, onClose }) {
+export default function AdminLogin({ onLoginSuccess, onClose, isStandalonePage = false, onGoHome }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,17 +37,19 @@ export default function AdminLogin({ onLoginSuccess, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className={isStandalonePage ? "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 selection:bg-blue-500 selection:text-white" : "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"}>
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-scaleUp">
         {/* Top Header */}
         <div className="bg-gray-900 text-white p-6 relative">
-          <button
-            onClick={onClose}
-            type="button"
-            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {onClose && !isStandalonePage && (
+            <button
+              onClick={onClose}
+              type="button"
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
 
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-2xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400 shadow-inner">
@@ -172,6 +174,18 @@ export default function AdminLogin({ onLoginSuccess, onClose }) {
                 )}
               </button>
             </div>
+
+            {isStandalonePage && onGoHome && (
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={onGoHome}
+                  className="text-xs text-gray-500 hover:text-gray-900 hover:underline font-medium cursor-pointer inline-flex items-center gap-1"
+                >
+                  <span>← Return to Customer Review Page</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

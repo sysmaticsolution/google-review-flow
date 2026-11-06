@@ -38,6 +38,7 @@ export default function AdminPanel({
   onFeedbacksChange,
   onClearFeedbacks,
   onUserUpdate,
+  onGoHome,
   onClose,
 }) {
   const [activeTab, setActiveTab] = useState('qr'); // 'qr' | 'inbox' | 'settings' | 'security'
@@ -213,6 +214,16 @@ export default function AdminPanel({
           </div>
 
           <div className="flex items-center gap-2">
+            {onGoHome && (
+              <button
+                onClick={onGoHome}
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/10 hover:bg-white/20 text-gray-200 border border-white/20 transition-colors cursor-pointer"
+                title="View customer review page"
+              >
+                <span>Review Page (/)</span>
+              </button>
+            )}
             <button
               onClick={onLogout}
               type="button"
@@ -222,13 +233,15 @@ export default function AdminPanel({
               <LogOut className="w-3.5 h-3.5" />
               <span>Log out</span>
             </button>
-            <button
-              onClick={onClose}
-              type="button"
-              className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                type="button"
+                className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
