@@ -82,6 +82,10 @@ function getLanIp() {
   return candidates[0] || 'localhost';
 }
 
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/network-info', (req, res) => {
   const lanIp = getLanIp();
   res.json({

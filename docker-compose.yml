@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: reviewflow-backend:latest
+    container_name: reviewflow_backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3007:3001"
+    volumes:
+      - ./data:/app/data
+      - ./data/uploads:/app/public/images/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+
+  frontend:
+    image: nginx:alpine
+    container_name: reviewflow_frontend
+    restart: unless-stopped
+    ports:
+      - "3008:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reviewflow.rule=Host(`reviewflow.veltron.in`)"
+      - "traefik.http.routers.reviewflow.entrypoints=websecure"
+      - "traefik.http.routers.reviewflow.tls=true"
+      - "traefik.http.routers.reviewflow.tls.certresolver=letsencrypt"
+      - "traefik.http.services.reviewflow.loadbalancer.server.port=80"
+
